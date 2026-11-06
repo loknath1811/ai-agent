@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dhruva Space - Work Status</title>
+<style>
+  :root {
+    --bg:#f4f6fa; --card:#ffffff; --ink:#0f1b2d; --muted:#5b6b82; --line:#dde3ec; --accent:#1f5eff;
+    --pending:#8a96a8; --ontrack:#1f9d68; --blocked:#d93b3b; --delayed:#e08a14; --done:#2f6fe4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0b1220; --card:#121c30; --ink:#e8eefb; --muted:#93a3bf; --line:#22304d; --accent:#6c9bff; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 22px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; }
+  header h1 { margin:0; font-size:17px; letter-spacing:.3px; }
+  header h1 span { color:var(--muted); font-weight:400; }
+  .right { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; }
+  button { font:inherit; padding:6px 12px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:7px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  main { max-width:1180px; margin:0 auto; padding:18px 22px 60px; }
+  .crumbs { margin:2px 0 14px; color:var(--muted); }
+  .crumbs a { color:var(--accent); cursor:pointer; text-decoration:none; }
+  .crumbs a:hover { text-decoration:underline; }
+  h2 { font-size:15px; margin:26px 0 10px; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .tile { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .tile .n { font-size:26px; font-weight:650; }
+  .tile .l { color:var(--muted); font-size:12px; }
+  .tile.bad .n { color:var(--blocked); }
+  .bar { display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--line); margin:12px 0 6px; }
+  .bar i { display:block; height:100%; }
+  .legend { display:flex; flex-wrap:wrap; gap:14px; color:var(--muted); font-size:12px; }
+  .legend b { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th { color:var(--muted); font-weight:550; font-size:12px; }
+  tr:last-child td { border-bottom:none; }
+  tr.click { cursor:pointer; }
+  tr.click:hover { background:rgba(120,140,180,.10); }
+  .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:12px; color:#fff; white-space:nowrap; }
+  .s-pending{background:var(--pending)} .s-on-track{background:var(--ontrack)} .s-blocked{background:var(--blocked)}
+  .s-delayed{background:var(--delayed)} .s-done{background:var(--done)}
+  #notesBtn, #briefBtn, #impactBtn { margin-right:8px; }
+  .impact-h { margin:16px 0 8px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .impact-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .impact-card { border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .impact-n { font-size:24px; font-weight:700; line-height:1.2; }
+  .impact-l { font-size:12.5px; }
+  .impact-s { font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .impact-est { border:1px dashed var(--line); border-radius:10px; padding:12px 14px; }
+  .risk-why { color:#b7791f; font-size:12.5px; }
+  .brief-frame { width:100%; height:420px; border:1px solid var(--line); border-radius:8px; background:#fff; margin-top:10px; }
+  .notes-t { width:100%; border-collapse:collapse; margin-top:12px; }
+  .notes-t th { text-align:left; font-size:12px; color:var(--muted); font-weight:550; padding:4px 6px; }
+  .notes-t td { padding:4px 6px; vertical-align:top; }
+  .notes-t input[type=text], .notes-t input[type=date], .notes-t input:not([type]) { width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font:inherit; font-size:13px; }
+  .notes-t input:disabled { opacity:.55; }
+  .notes-t tr.n-sub td { font-size:12px; color:var(--muted); padding-top:0; padding-bottom:10px; border-bottom:1px solid var(--line); }
+  .n-bad { color:var(--blocked); font-weight:600; } .n-warn { color:#b7791f; font-weight:600; } .n-ok { color:#2f8f4e; font-weight:600; }
+  .n-quote { font-style:italic; }
+  .chk { display:inline-block; margin-left:6px; width:16px; height:16px; line-height:16px; text-align:center; border-radius:50%; font-size:11px; font-weight:700; background:#b7791f; color:#fff; cursor:help; }
+  .fix { margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); font-size:13px; }
+  .fix select, .fix button { font:inherit; font-size:13px; margin:0 4px; }
+  .live { font-size:12px; margin-right:10px; }
+  .live.on { color:#3fb950; } .live.off { color:var(--muted); }
+  .dlv-tag { font-size:11.5px; margin-left:6px; white-space:nowrap; }
+  .dlv-tag.wait { color:var(--muted); } .dlv-tag.ok { color:var(--muted); opacity:.75; }
+  .dlv-tag.fail { color:var(--blocked); font-weight:600; }
+  .msg.dlv > div { padding:1px 0; font-size:12.5px; }
+  .flag { color:var(--blocked); font-weight:600; font-size:12px; margin-left:6px; }
+  .mini { display:flex; height:8px; width:120px; border-radius:4px; overflow:hidden; background:var(--line); }
+  .mini i { display:block; height:100%; }
+  .muted { color:var(--muted); }
+  .empty { padding:22px; text-align:center; color:var(--muted); }
+  .events { background:rgba(120,140,180,.08); }
+  .events div { padding:2px 0; font-size:12.5px; }
+  #msg { margin:12px 0; padding:10px 14px; border-radius:8px; background:#fdecec; color:#9b1c1c; display:none; }
+  @media (max-width:700px){ .hide-sm{display:none} header h1 span{display:none} }
+
+  /* ---- chat box ---- */
+  :root { --bubble-user:#1f5eff; }
+  @media (prefers-color-scheme: dark) { :root { --bubble-user:#2c52b8; } }
+  #chatToggle { position:fixed; right:22px; bottom:22px; z-index:6; padding:12px 20px; border-radius:28px; border:none; background:var(--bubble-user); color:#fff; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,.28); }
+  #chatToggle:hover { filter:brightness(1.1); }
+  #chatPanel { position:fixed; right:22px; bottom:80px; z-index:6; width:400px; max-width:calc(100vw - 24px); height:min(580px, 74vh); display:none; flex-direction:column; background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:0 14px 44px rgba(0,0,0,.3); overflow:hidden; }
+  #chatPanel.open { display:flex; }
+  .chat-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); }
+  .chat-head b { font-size:14px; }
+  .chat-head .as { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); min-width:0; }
+  .chat-head select { max-width:170px; padding:4px 6px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); font:inherit; font-size:12px; }
+  #chatLog { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .msg { max-width:88%; padding:8px 11px; border-radius:12px; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13.5px; }
+  .msg.user { align-self:flex-end; background:var(--bubble-user); color:#fff; border-bottom-right-radius:3px; }
+  .msg.assistant { align-self:flex-start; background:rgba(120,140,180,.18); border-bottom-left-radius:3px; }
+  .msg.err { background:#fdecec; color:#9b1c1c; }
+  .msg.typing { opacity:.65; font-style:italic; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 8px; }
+  .chip { font-size:12px; padding:4px 10px; border-radius:14px; }
+  .chat-in { display:flex; gap:8px; padding:10px; border-top:1px solid var(--line); align-items:flex-end; }
+  .chat-in textarea { flex:1; resize:none; height:44px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; }
+  .chat-in textarea:focus { outline:none; border-color:var(--accent); }
+  .chat-in button { height:44px; background:var(--bubble-user); color:#fff; border-color:transparent; }
+  .chat-in button:disabled { opacity:.5; cursor:default; }
+  .chat-in button.attach { width:40px; padding:0; display:flex; align-items:center; justify-content:center; background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .chat-in button.attach:hover:not(:disabled) { border-color:var(--accent); }
+  #chatFiles { display:none; flex-wrap:wrap; gap:6px; padding:8px 12px 0; border-top:1px solid var(--line); }
+  #chatFiles.has { display:flex; }
+  .fchip { display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:3px 4px 3px 9px; border:1px solid var(--line); border-radius:14px; font-size:12px; background:var(--bg); }
+  .fchip .fn { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:190px; }
+  .fchip .fs { color:var(--muted); }
+  .fchip.up { opacity:.6; font-style:italic; }
+  .fchip button { border:none; background:transparent; color:var(--muted); cursor:pointer; font-size:15px; line-height:1; padding:0 5px; }
+  .fchip button:hover { color:var(--ink); }
+  @media (max-width:700px){ #chatPanel { right:12px; bottom:76px; } #chatToggle { right:12px; bottom:14px; } }
+
+  /* ---- tabs + People (organization admin) ---- */
+  .tabs { display:flex; gap:6px; margin:0 0 14px; border-bottom:1px solid var(--line); }
+  .tabs button { border:none; border-bottom:2px solid transparent; border-radius:0; background:none; padding:8px 14px; color:var(--muted); font-weight:550; }
+  .tabs button.on { color:var(--ink); border-bottom-color:var(--accent); }
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:4px 0 12px; }
+  .toolbar .grow, .actions .grow { flex:1; }
+  input[type=text], input[type=email], input[type=search], select.in, .fld input, .fld select, .toolbar input, .toolbar select {
+    padding:7px 10px; border:1px solid var(--line); border-radius:7px; background:var(--card); color:var(--ink); font:inherit; min-width:0; }
+  input:focus, select:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button.danger { color:var(--blocked); border-color:var(--blocked); }
+  button:disabled { opacity:.5; cursor:default; }
+  .s-add, .s-active { background:var(--ontrack); } .s-update { background:var(--delayed); }
+  .s-unchanged, .s-inactive { background:var(--pending); } .s-error { background:var(--blocked); }
+  .badge { font-size:11px; padding:1px 7px; border-radius:10px; border:1px solid var(--accent); color:var(--accent); margin-left:6px; white-space:nowrap; }
+  tr.off td { opacity:.55; }
+  .unit { padding:10px 14px; border-bottom:1px solid var(--line); }
+  .unit:last-child { border-bottom:none; }
+  .unit .head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .unit ul { margin:6px 0 0; padding-left:0; list-style:none; }
+  .unit li { display:flex; justify-content:space-between; align-items:center; padding:4px 0 4px 14px; gap:10px; }
+  .log div { padding:5px 14px; border-bottom:1px solid var(--line); font-size:13px; }
+  .log div:last-child { border-bottom:none; }
+  .modal { position:fixed; inset:0; z-index:10; background:rgba(8,14,28,.55); display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; overflow:auto; }
+  .modal.open { display:flex; }
+  .box { background:var(--card); border:1px solid var(--line); border-radius:12px; width:100%; max-width:520px; padding:18px 20px; box-shadow:0 20px 60px rgba(0,0,0,.4); }
+  .box.wide { max-width:820px; }
+  .box h3 { margin:0 0 12px; font-size:16px; }
+  .fld { margin:0 0 12px; display:flex; flex-direction:column; gap:4px; }
+  .fld label { font-size:12px; color:var(--muted); font-weight:550; }
+  /* checkbox row in forms. Its own class name: `.chk` is the small brown "?" badge, and sharing it squeezed this row into a dot */
+  .fld .chk-row { display:flex; align-items:center; gap:8px; color:var(--ink); font-size:14px; font-weight:400; cursor:pointer; }
+  .fld .chk-row input { width:16px; height:16px; padding:0; margin:0; flex:none; cursor:pointer; accent-color:var(--accent); }
+  .hint { font-size:12px; color:var(--muted); }
+  .ferr { display:none; margin:0 0 12px; padding:8px 12px; border-radius:8px; background:#fdecec; color:#9b1c1c; }
+  .actions { display:flex; gap:8px; align-items:center; margin-top:14px; flex-wrap:wrap; }
+  .scroll { max-height:340px; overflow:auto; border:1px solid var(--line); border-radius:8px; margin-top:10px; }
+  .okbox { margin:10px 0; padding:8px 12px; border-radius:8px; background:rgba(31,157,104,.14); }
+  @media (max-width:700px){ .tabs button { padding:8px 10px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>DHRUVA SPACE <span>&nbsp;Work Status</span></h1>
+  <div class="right"><span id="live" class="live off" title="Updates appear by themselves">&#9679; connecting</span><span id="updated"></span><button id="impactBtn" type="button">Impact</button><button id="briefBtn" type="button">Morning brief</button><button id="notesBtn" type="button">Meeting notes</button><button id="refresh">Refresh</button></div>
+</header>
+<main>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="status" class="on">Status</button>
+    <button type="button" role="tab" data-tab="people">People</button>
+  </div>
+  <div id="msg"></div>
+  <div class="crumbs" id="crumbs"></div>
+  <div id="view"></div>
+</main>
+
+<div id="modal" class="modal"><div id="modalBox" class="box" role="dialog" aria-modal="true"></div></div>
+
+<button id="chatToggle" type="button">Ask the agent</button>
+<div id="chatPanel" role="dialog" aria-label="Chat with the work agent">
+  <div class="chat-head">
+    <div class="as"><b>Agent</b><span>chatting as</span><select id="chatAs" title="Who is speaking. Only leaders can assign work."></select></div>
+    <button id="chatClear" type="button" title="Start a new conversation">New chat</button>
+  </div>
+  <div id="chatLog"></div>
+  <div class="chips" id="chatChips"></div>
+  <div id="chatFiles" aria-live="polite"></div>
+  <div class="chat-in">
+    <input type="file" id="chatFile" multiple hidden>
+    <button id="chatAttach" class="attach" type="button" title="Attach files. They are emailed with any task you assign in this message." aria-label="Attach files"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></button>
+    <textarea id="chatInput" placeholder="e.g. Ask Ravi Kumar to finish the NCR review by Friday" rows="1"></textarea>
+    <button id="chatSend" type="button">Send</button>
+  </div>
+</div>
+
+<script>
+const COLORS = {pending:'--pending', 'on-track':'--ontrack', blocked:'--blocked', delayed:'--delayed', done:'--done'};
+const ORDER = ['done','on-track','pending','delayed','blocked'];
+let current = {scope:'company', id:null};
+let tab = 'status';
+let trail = [];
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate = d => d ? new Date(d + 'Z').toLocaleString([], {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+
+async function api(path, opts = {}) {
+  const call = key => fetch(path, {
+    ...opts,
+    // a FormData body (file upload) must set its own multipart Content-Type, so only JSON bodies get one
+    headers: {...(opts.body instanceof FormData ? {} : {'Content-Type': 'application/json'}), 'X-API-Key': key, ...(opts.headers || {})},
+  });
+  let r = await call(sessionStorage.getItem('apiKey') || '');
+  if (r.status === 401) {
+    const k = prompt('This dashboard needs the API key:');
+    if (!k) throw new Error('API key required');
+    sessionStorage.setItem('apiKey', k);
+    r = await call(k);
+  }
+  if (!r.ok) {
+    let detail = '';
+    try { detail = (await r.json()).detail; } catch (e) { /* not JSON */ }
+    throw new Error(typeof detail === 'string' && detail ? detail : 'Request failed (' + r.status + ')');
+  }
+  return r.json();
+}
+
+const pill = s => `<span class="pill s-${esc(s)}">${esc(s)}</span>`;
+
+function bar(summary, cls) {
+  const t = summary.total || 1;
+  return `<div class="${cls}">` + ORDER.map(s =>
+    `<i title="${s}: ${summary.by_status[s]}" style="width:${100*summary.by_status[s]/t}%;background:var(${COLORS[s]})"></i>`).join('') + '</div>';
+}
+
+function tiles(s) {
+  const t = (n, l, bad) => `<div class="tile ${bad && n ? 'bad' : ''}"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  return `<div class="tiles">
+    ${t(s.total,'Total tasks')}${t(s.completion_pct + '%','Completed')}${t(s.open,'Open')}
+    ${t(s.by_status.blocked,'Blocked',true)}${t(s.overdue,'Overdue',true)}${t(s.escalated,'Escalated',true)}
+  </div>
+  ${s.total ? bar(s,'bar') : ''}
+  <div class="legend">${ORDER.map(k => `<span><b style="background:var(${COLORS[k]})"></b>${k} ${s.by_status[k]}</span>`).join('')}</div>`;
+}
+
+function rowsTable(title, cols, rows) {
+  if (!rows.length) return `<h2>${title}</h2><div class="card"><div class="empty">Nothing here yet.</div></div>`;
+  return `<h2>${title}</h2><div class="card"><table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+}
+
+function unitRow(kind, id, name, s, extra) {
+  return `<tr class="click" data-go="${kind}:${id ?? ''}:${esc(name)}">
+    <td><b>${esc(name)}</b>${extra || ''}</td><td class="hide-sm">${bar(s,'mini')}</td>
+    <td>${s.total}</td><td>${s.completion_pct}%</td><td>${s.by_status.blocked}</td><td>${s.overdue}</td><td>${s.escalated}</td></tr>`;
+}
+const UNIT_COLS = ['Name','<span class="hide-sm">Progress</span>','Tasks','Done','Blocked','Overdue','Escalated'];
+
+// "?" = the agent was not sure it read this status correctly and has asked the employee to confirm it
+const chkTag = t => t.status_check === 'unconfirmed'
+  ? '<span class="chk" title="The agent was not sure it read this status correctly. It has asked the employee to confirm.">?</span>' : '';
+const dlvTag = t => t.delivery_status === 'waiting' ? '<span class="dlv-tag wait">&#9203; sending email</span>'
+  : t.delivery_status === 'failed' ? `<span class="dlv-tag fail" title="${esc(t.delivery_error || '')}">&#10060; email not delivered</span>`
+  : t.delivery_status === 'sent' ? '<span class="dlv-tag ok">&#10003; emailed</span>' : '';
+
+function taskRows(tasks, withPerson) {
+  return tasks.map(t => `<tr class="click" data-task="${t.id}">
+    <td>#${t.id} ${esc(t.title)}${t.escalated ? '<span class="flag">ESCALATED</span>' : ''}${dlvTag(t)}</td>
+    ${withPerson ? `<td>${esc(t.assignee_name)}<div class="muted">${esc(t.team || '')}</div></td>` : ''}
+    <td>${pill(t.status)}${chkTag(t)}${t.overdue ? '<span class="flag">OVERDUE</span>' : ''}</td>
+    <td class="hide-sm">${fmtDate(t.due_date)}</td></tr>`);
+}
+// Open tasks heading for trouble (not late yet): soonest deadline first, with the reason each was flagged
+function atRiskTable(list) {
+  if (!list || !list.length) return '';
+  const rows = list.map(t => `<tr class="click" data-task="${t.id}">
+    <td>#${t.id} ${esc(t.title)}${dlvTag(t)}</td>
+    <td>${esc(t.assignee_name)}<div class="muted">${esc(t.team || '')}</div></td>
+    <td><span class="risk-why">${esc(t.reasons.join('; '))}</span></td>
+    <td class="hide-sm">${fmtDate(t.due_date)}</td></tr>`);
+  return rowsTable('At risk (heading for trouble)', ['Task', 'Assigned to', 'Why', '<span class="hide-sm">Deadline</span>'], rows);
+}
+const TASK_COLS = (p) => ['Task', ...(p ? ['Assigned to'] : []), 'Status', '<span class="hide-sm">Deadline</span>'];
+
+let viewKey = '';                       // what #view shows right now: 'people' or a status page ("company:", "team:3" ...)
+const statusCache = {};                 // last HTML of each status page: shown instantly, refreshed behind it
+async function render() {
+  if (tab === 'people') return renderPeople();
+  const msg = document.getElementById('msg'); msg.style.display = 'none';
+  const view = document.getElementById('view');
+  const key = current.scope + ':' + (current.id ?? '');
+  if (viewKey !== key) {                // coming from People or another page: never leave the old content up
+    if (statusCache[key]) { view.innerHTML = statusCache[key]; renderCrumbs(); wire(); }
+    else view.innerHTML = '<div class="card"><div class="empty">Loading...</div></div>';
+    viewKey = key;
+  }
+  try {
+    let html = '';
+    const {scope, id} = current;
+    if (scope === 'company') {
+      const r = await api('/reports/company');
+      html += `<div class="muted">${r.headcount} people in the directory</div>` + tiles(r.summary);
+      html += rowsTable('Divisions', UNIT_COLS, r.divisions.map(d => unitRow('division', d.id, d.name, d.summary)));
+      html += rowsTable('Needs attention', TASK_COLS(true), taskRows(r.attention, true)) + atRiskTable(r.at_risk);
+    } else if (scope === 'division') {
+      const r = await api('/reports/division/' + id);
+      html += tiles(r.summary);
+      html += rowsTable('Teams', UNIT_COLS, r.teams.map(t => unitRow('team', t.id, t.name, t.summary)));
+      html += rowsTable('Needs attention', TASK_COLS(true), taskRows(r.attention, true)) + atRiskTable(r.at_risk);
+    } else if (scope === 'team') {
+      const r = await api('/reports/team/' + id);
+      html += tiles(r.summary);
+      html += rowsTable('People', UNIT_COLS, r.members.map(m => unitRow('person', m.id, m.name, m.summary, `<div class="muted">${esc(m.email)}</div>`)));
+      html += rowsTable('Needs attention', TASK_COLS(true), taskRows(r.attention, true)) + atRiskTable(r.at_risk);
+    } else if (scope === 'person') {
+      const r = await api('/reports/person/' + id);
+      html += `<div class="muted">${esc(r.email)} ${r.team ? '- ' + esc(r.team) : ''}</div>` + tiles(r.summary);
+      html += rowsTable('Tasks (click for history)', TASK_COLS(false), taskRows(r.tasks, false));
+    }
+    statusCache[key] = html;
+    // the answer came back after the user moved to People (or another page): keep it for later, don't paint it
+    if (tab !== 'status' || current.scope + ':' + (current.id ?? '') !== key) return;
+    view.innerHTML = html;
+    document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    renderCrumbs();
+    wire();
+  } catch (e) {
+    if (tab !== 'status') return;                       // an error for a page nobody is looking at
+    msg.textContent = e.message; msg.style.display = 'block';
+    if (!statusCache[key]) view.innerHTML = '';
+  }
+}
+
+function renderCrumbs() {
+  const parts = [`<a data-crumb="-1">Company</a>`];
+  trail.forEach((t, i) => parts.push(i === trail.length - 1 ? `<b>${esc(t.name)}</b>` : `<a data-crumb="${i}">${esc(t.name)}</a>`));
+  document.getElementById('crumbs').innerHTML = parts.join(' &rsaquo; ');
+  document.querySelectorAll('[data-crumb]').forEach(a => a.onclick = () => {
+    const i = +a.dataset.crumb;
+    trail = trail.slice(0, i + 1);
+    current = i < 0 ? {scope:'company', id:null} : {scope: trail[i].scope, id: trail[i].id};
+    render();
+  });
+}
+
+function wire() {
+  document.querySelectorAll('[data-go]').forEach(tr => tr.onclick = () => {
+    const [scope, id, ...name] = tr.dataset.go.split(':');
+    if (!id) return;                       // the "(No division)" bucket has no drill-down
+    trail.push({scope, id, name: name.join(':')});
+    current = {scope, id};
+    render();
+  });
+  document.querySelectorAll('[data-task]').forEach(tr => tr.onclick = async () => {
+    const next = tr.nextElementSibling;
+    if (next && next.classList.contains('events')) { next.remove(); return; }
+    try {
+      const ev = await api('/tasks/' + tr.dataset.task + '/events');
+      const cols = tr.children.length;
+      const row = document.createElement('tr'); row.className = 'events';
+      row.innerHTML = `<td colspan="${cols}">` + (ev.length ? ev.map(e =>
+        `<div><span class="muted">${fmtDate(e.created_at)}</span> &nbsp;<b>${esc(e.event_type)}</b>` +
+        (e.new_status ? ` &rarr; ${esc(e.new_status)}` : '') + (e.detail ? ` - ${esc(e.detail)}` : '') + '</div>').join('') : 'No history') +
+        `<div class="fix">Wrong status? Correct it as <b class="fix-who"></b>:
+           <select class="fix-status" aria-label="Correct status"><option value="">choose...</option>
+             ${['on-track', 'delayed', 'blocked', 'done', 'pending'].map(s => `<option>${s}</option>`).join('')}</select>
+           <button type="button" class="fix-go">Apply</button><span class="fix-msg"></span></div></td>`;
+      tr.after(row);
+      if (!$('chatAs').options.length) await loadPeople();
+      const who = $('chatAs').selectedOptions[0];
+      row.querySelector('.fix-who').textContent = who ? who.textContent : 'nobody selected (pick a leader in the chat)';
+      row.querySelector('.fix-go').onclick = async ev2 => {
+        ev2.stopPropagation();
+        const status = row.querySelector('.fix-status').value, msg = row.querySelector('.fix-msg');
+        if (!status) { msg.textContent = ' Choose a status first.'; return; }
+        try {
+          await api('/tasks/' + tr.dataset.task + '/correct', {method: 'POST', body: JSON.stringify({status, as_email: $('chatAs').value || null})});
+          render();
+        } catch (e) { msg.textContent = ' ' + e.message; }
+      };
+      row.onclick = ev2 => ev2.stopPropagation();
+    } catch (e) { alert(e.message); }
+  });
+}
+
+document.getElementById('refresh').onclick = render;
+setInterval(() => { if (tab === 'status') render(); }, 60000);   // safety net if the live check ever fails
+
+// Live updates: ask the server for its "something changed" number every 2 s (answered from memory,
+// no database work). When it differs from the last one we saw, reload what is on screen.
+let lastVersion = null;
+function setLive(on) {
+  const el = document.getElementById('live');
+  el.className = 'live ' + (on ? 'on' : 'off');
+  el.innerHTML = on ? '&#9679; live' : '&#9679; offline';
+}
+async function checkChanges() {
+  if (document.hidden) return;                       // nobody is looking: do not ask
+  try {
+    const r = await fetch('/changes', {headers: {'X-API-Key': sessionStorage.getItem('apiKey') || ''}});
+    if (!r.ok) throw new Error('status ' + r.status);
+    const {version} = await r.json();
+    setLive(true);
+    if (lastVersion !== null && version !== lastVersion) render();
+    lastVersion = version;
+  } catch (e) { setLive(false); }
+}
+setInterval(checkChanges, 2000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkChanges(); });
+checkChanges();
+render();
+
+
+// ======================= People (organization admin) =======================
+const g = id => document.getElementById(id);
+const org = {emps: [], teams: [], divs: [], q: '', team: '', inactive: false};
+const divName = id => (org.divs.find(d => d.id === id) || {}).name || '';
+const teamLabel = t => (divName(t.division_id) ? divName(t.division_id) + ' › ' : '') + t.name;
+const nice = a => String(a || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+
+function openModal(html, wide) {
+  g('modalBox').className = 'box' + (wide ? ' wide' : '');
+  g('modalBox').innerHTML = html;
+  g('modal').classList.add('open');
+  const f = g('modalBox').querySelector('input:not([type=file]),select');
+  if (f) f.focus();
+}
+function closeModal() { g('modal').classList.remove('open'); g('modalBox').innerHTML = ''; }
+g('modal').onclick = e => { if (e.target === g('modal')) closeModal(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && g('modal').classList.contains('open')) closeModal(); });
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+
+/* generic small form: fields = [{key,label,type,value,options,hint,label2}] */
+function openForm({title, fields, saveLabel, onSave, extra}) {
+  const inputs = fields.map(f => {
+    const id = 'f_' + f.key;
+    let ctl;
+    if (f.type === 'select') {
+      ctl = `<select id="${id}">` + f.options.map(([v, l]) =>
+        `<option value="${esc(v)}" ${String(v) === String(f.value ?? '') ? 'selected' : ''}>${esc(l)}</option>`).join('') + '</select>';
+    } else if (f.type === 'checkbox') {
+      ctl = `<label class="chk-row"><input type="checkbox" id="${id}" ${f.value ? 'checked' : ''}> ${esc(f.label2 || '')}</label>`;
+    } else {
+      ctl = `<input id="${id}" type="${f.type || 'text'}" value="${esc(f.value ?? '')}" autocomplete="off">`;
+    }
+    return `<div class="fld"><label for="${id}">${esc(f.label)}</label>${ctl}${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ''}</div>`;
+  }).join('');
+  openModal(`<h3>${esc(title)}</h3><div id="formErr" class="ferr" role="alert"></div>${inputs}
+    <div class="actions">${extra || ''}<span class="grow"></span>
+    <button type="button" id="mCancel">Cancel</button><button type="button" id="mSave" class="primary">${esc(saveLabel || 'Save')}</button></div>`);
+  const save = async () => {
+    const vals = {};
+    fields.forEach(f => { const el = g('f_' + f.key); vals[f.key] = f.type === 'checkbox' ? el.checked : el.value; });
+    g('mSave').disabled = true; g('formErr').style.display = 'none';
+    try { await onSave(vals); closeModal(); await renderPeople(); }
+    catch (e) { g('formErr').textContent = e.message; g('formErr').style.display = 'block'; g('mSave').disabled = false; }
+  };
+  g('mCancel').onclick = closeModal;
+  g('mSave').onclick = save;
+  g('modalBox').querySelectorAll('input:not([type=checkbox])').forEach(i => i.onkeydown = e => { if (e.key === 'Enter') save(); });
+}
+
+const post = (url, body) => api(url, {method: 'POST', body: JSON.stringify(body)});
+const patch = (url, body) => api(url, {method: 'PATCH', body: JSON.stringify(body)});
+
+let orgJson = '';                                       // last data shown (to skip pointless redraws)
+async function renderPeople() {
+  const msg = g('msg'); msg.style.display = 'none';
+  g('crumbs').innerHTML = '';
+  if (!g('pTable')) {                                   // coming from another tab: never show its old content
+    if (orgJson) paintPeople(org.changes);              // seen before: show it at once, refresh behind it
+    else g('view').innerHTML = '<div class="card"><div class="empty">Loading people...</div></div>';
+    viewKey = 'people';
+  }
+  try {
+    const data = await api('/org/overview');            // one request for everything on this page
+    const json = JSON.stringify(data);
+    const stillHere = tab === 'people';                 // false if the user already went back to Status
+    if (json !== orgJson || (stillHere && !g('pTable'))) {
+      const empsChanged = JSON.stringify(data.employees) !== JSON.stringify(org.emps);
+      orgJson = json;
+      Object.assign(org, {emps: data.employees, teams: data.teams, divs: data.divisions, changes: data.changes});
+      if (stillHere) paintPeople(data.changes);          // otherwise just remember it for next time
+      if (chat.ready && empsChanged) loadPeople();      // keep the chat's "chatting as" list in step
+    }
+    if (stillHere) g('updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    if (tab !== 'people') return;
+    msg.textContent = e.message; msg.style.display = 'block'; if (!orgJson) g('view').innerHTML = '';
+  }
+}
+
+function paintPeople(log) {
+  viewKey = 'people';
+  const teams = org.teams;
+  g('view').innerHTML = `
+      <div class="toolbar">
+        <input type="search" id="pSearch" placeholder="Search name, email or title" aria-label="Search people" value="${esc(org.q)}">
+        <select id="pTeam" aria-label="Filter by team"><option value="">All teams</option>
+          ${teams.slice().sort((a, b) => teamLabel(a).localeCompare(teamLabel(b))).map(t =>
+            `<option value="${t.id}" ${String(t.id) === org.team ? 'selected' : ''}>${esc(teamLabel(t))}</option>`).join('')}</select>
+        <label><input type="checkbox" id="pInactive" ${org.inactive ? 'checked' : ''}> Show inactive</label>
+        <span class="grow"></span>
+        <button type="button" id="pImport">Import CSV</button>
+        <button type="button" id="pAdd" class="primary">+ Add person</button>
+      </div>
+      <div id="pTable"></div>
+      <h2>Teams &amp; divisions</h2>
+      <div class="toolbar"><button type="button" id="pAddDiv">+ Add division</button><button type="button" id="pAddTeam">+ Add team</button></div>
+      <div class="card" id="pUnits"></div>
+      <h2>Recent changes</h2>
+      <div class="card log">${log.length ? log.map(c => `<div><span class="muted">${fmtDate(c.created_at)}</span> &nbsp;<b>${esc(nice(c.action))}</b>
+        ${c.target ? ' - ' + esc(c.target) : ''}${c.detail ? ` <span class="muted">(${esc(c.detail)})</span>` : ''}</div>`).join('')
+        : '<div class="empty">No changes yet.</div>'}</div>`;
+  drawPeopleTable(); drawUnits();
+  g('pSearch').oninput = e => { org.q = e.target.value; drawPeopleTable(); };
+  g('pTeam').onchange = e => { org.team = e.target.value; drawPeopleTable(); };
+  g('pInactive').onchange = e => { org.inactive = e.target.checked; drawPeopleTable(); };
+  g('pAdd').onclick = () => personForm(null);
+  g('pImport').onclick = importDialog;
+  g('pAddDiv').onclick = () => divisionForm(null);
+  g('pAddTeam').onclick = () => teamForm(null);
+}
+
+function drawPeopleTable() {
+  const q = org.q.trim().toLowerCase();
+  const byId = Object.fromEntries(org.emps.map(e => [e.id, e]));
+  const teamOf = id => org.teams.find(t => t.id === id);
+  const list = org.emps.filter(e =>
+    (org.inactive || e.active) &&
+    (!org.team || String(e.team_id) === org.team) &&
+    (!q || (e.full_name + ' ' + e.email + ' ' + (e.title || '')).toLowerCase().includes(q)));
+  if (!org.emps.length) { g('pTable').innerHTML = '<div class="card"><div class="empty">No people yet. Use <b>+ Add person</b> or <b>Import CSV</b>.</div></div>'; return; }
+  if (!list.length) { g('pTable').innerHTML = '<div class="card"><div class="empty">No one matches.</div></div>'; return; }
+  g('pTable').innerHTML = `<div class="card"><table><thead><tr><th>Name</th><th class="hide-sm">Title</th><th>Team</th>
+    <th class="hide-sm">Manager</th><th>Status</th><th></th></tr></thead><tbody>` + list.map(e => {
+      const t = teamOf(e.team_id), m = byId[e.manager_id];
+      return `<tr class="${e.active ? '' : 'off'}"><td><b>${esc(e.full_name)}</b>${e.is_leader ? '<span class="badge">leader</span>' : ''}
+        <div class="muted">${esc(e.email)}</div></td><td class="hide-sm">${esc(e.title || '')}</td>
+        <td>${t ? esc(teamLabel(t)) : '<span class="muted">-</span>'}</td>
+        <td class="hide-sm">${m ? esc(m.full_name) : '<span class="muted">-</span>'}</td>
+        <td><span class="pill s-${e.active ? 'active' : 'inactive'}">${e.active ? 'active' : 'inactive'}</span></td>
+        <td><button type="button" data-edit="${e.id}">Edit</button></td></tr>`;
+    }).join('') + `</tbody></table></div><div class="muted" style="margin-top:6px">${list.length} of ${org.emps.length} people</div>`;
+  g('pTable').querySelectorAll('[data-edit]').forEach(b => b.onclick = () => personForm(byId[b.dataset.edit]));
+}
+
+function drawUnits() {
+  const count = id => org.emps.filter(e => e.active && e.team_id === id).length;
+  const teamLi = t => `<li><span>${esc(t.name)} <span class="muted">- ${count(t.id)} ${count(t.id) === 1 ? 'person' : 'people'}</span></span>
+    <button type="button" data-team="${t.id}">Edit</button></li>`;
+  const groups = org.divs.slice().sort((a, b) => a.name.localeCompare(b.name)).map(d => {
+    const ts = org.teams.filter(t => t.division_id === d.id).sort((a, b) => a.name.localeCompare(b.name));
+    return `<div class="unit"><div class="head"><b>${esc(d.name)}</b><button type="button" data-div="${d.id}">Rename</button></div>
+      <ul>${ts.length ? ts.map(teamLi).join('') : '<li class="muted">No teams yet</li>'}</ul></div>`;
+  });
+  const loose = org.teams.filter(t => !t.division_id);
+  if (loose.length) groups.push(`<div class="unit"><div class="head"><b class="muted">No division</b></div><ul>${loose.map(teamLi).join('')}</ul></div>`);
+  g('pUnits').innerHTML = groups.length ? groups.join('') : '<div class="empty">No divisions or teams yet.</div>';
+  g('pUnits').querySelectorAll('[data-div]').forEach(b => b.onclick = () => divisionForm(org.divs.find(d => d.id === +b.dataset.div)));
+  g('pUnits').querySelectorAll('[data-team]').forEach(b => b.onclick = () => teamForm(org.teams.find(t => t.id === +b.dataset.team)));
+}
+
+function divisionForm(d) {
+  openForm({title: d ? 'Rename division' : 'Add division', saveLabel: d ? 'Save' : 'Add',
+    fields: [{key: 'name', label: 'Division name', value: d ? d.name : ''}],
+    onSave: v => d ? patch('/org/divisions/' + d.id, {name: v.name}) : post('/org/divisions', {name: v.name})});
+}
+
+function teamForm(t) {
+  const opts = [['', '- no division -']].concat(org.divs.slice().sort((a, b) => a.name.localeCompare(b.name)).map(d => [d.id, d.name]));
+  openForm({title: t ? 'Edit team' : 'Add team', saveLabel: t ? 'Save' : 'Add',
+    fields: [{key: 'name', label: 'Team name', value: t ? t.name : ''},
+             {key: 'division_id', label: 'Division', type: 'select', options: opts, value: t ? (t.division_id ?? '') : ''}],
+    onSave: v => {
+      const body = {name: v.name, division_id: v.division_id ? +v.division_id : null};
+      return t ? patch('/org/teams/' + t.id, body) : post('/org/teams', body);
+    }});
+}
+
+function personForm(emp) {
+  const teamOpts = [['', '- no team -']].concat(org.teams.slice().sort((a, b) => teamLabel(a).localeCompare(teamLabel(b))).map(t => [t.id, teamLabel(t)]));
+  const mgrOpts = [['', '- no manager -']].concat(org.emps
+    .filter(e => (e.active || (emp && e.id === emp.manager_id)) && (!emp || e.id !== emp.id))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name))
+    .map(e => [e.id, e.full_name + (e.title ? ' (' + e.title + ')' : '') + (e.active ? '' : ' - inactive')]));
+  const extra = emp ? `<button type="button" id="mToggle" class="${emp.active ? 'danger' : ''}">${emp.active ? 'Deactivate' : 'Reactivate'}</button>` : '';
+  openForm({
+    title: emp ? 'Edit ' + emp.full_name : 'Add person', saveLabel: emp ? 'Save changes' : 'Add person', extra,
+    fields: [
+      {key: 'full_name', label: 'Full name', value: emp ? emp.full_name : ''},
+      {key: 'email', label: 'Email', type: 'email', value: emp ? emp.email : '',
+       hint: 'The agent emails tasks here and recognises replies by this address.'},
+      {key: 'title', label: 'Title', value: emp ? emp.title || '' : ''},
+      {key: 'team_id', label: 'Team', type: 'select', options: teamOpts, value: emp ? (emp.team_id ?? '') : ''},
+      {key: 'manager_id', label: 'Manager', type: 'select', options: mgrOpts, value: emp ? (emp.manager_id ?? '') : '',
+       hint: 'Blocked and escalation emails go to the manager.'},
+      {key: 'is_leader', label: 'Role', type: 'checkbox', label2: 'Leader - can assign work', value: emp ? emp.is_leader : false}],
+    onSave: async v => {
+      const body = {full_name: v.full_name.trim(), email: v.email.trim(), title: v.title.trim(),
+        team_id: v.team_id ? +v.team_id : null, manager_id: v.manager_id ? +v.manager_id : null, is_leader: v.is_leader};
+      if (!emp) {
+        if (!body.full_name || !body.email) throw new Error('Name and email are required.');
+        return post('/org/employees', body);
+      }
+      const diff = {};                                  // send only what changed
+      for (const k of Object.keys(body)) if (body[k] !== (emp[k] ?? (k === 'title' ? '' : null))) diff[k] = body[k];
+      if (Object.keys(diff).length) await patch('/org/employees/' + emp.id, diff);
+    }});
+  if (emp) g('mToggle').onclick = async () => {
+    try {
+      if (emp.active) {
+        const i = await api('/org/employees/' + emp.id + '/impact');
+        const lines = [`Deactivate ${emp.full_name}?`, '', 'They will stop receiving tasks and reminders, and cannot reply to change a status.'];
+        if (i.open_tasks) lines.push(`${i.open_tasks} open task(s) assigned to them will no longer be followed up.`);
+        if (i.direct_reports) lines.push(`${i.direct_reports} active people report to them - change their manager afterwards.`);
+        if (!confirm(lines.join('\n'))) return;
+      }
+      await patch('/org/employees/' + emp.id, {active: !emp.active});
+      closeModal(); await renderPeople();
+    } catch (e) { g('formErr').textContent = e.message; g('formErr').style.display = 'block'; }
+  };
+}
+
+function importDialog() {
+  openModal(`<h3>Import people from a CSV file</h3>
+    <p class="muted" style="margin-top:0">Columns: <code>division, team, full_name, email, title, manager_email, is_leader</code>.
+    You see exactly what will happen before anything is saved. Existing people are updated by email; people missing from the file are left alone.</p>
+    <div class="fld"><label for="impFile">CSV file</label><input type="file" id="impFile" accept=".csv,text/csv"></div>
+    <div id="formErr" class="ferr" role="alert"></div><div id="impOut"></div>
+    <div class="actions"><button type="button" id="impTpl">Download template</button><span class="grow"></span>
+    <button type="button" id="mCancel">Close</button><button type="button" id="impApply" class="primary" disabled>Apply import</button></div>`, true);
+  let text = '';
+  g('mCancel').onclick = closeModal;
+  g('impTpl').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['division,team,full_name,email,title,manager_email,is_leader\nQuality,QA,Anita Rao,anita@company.com,QA Lead,,true\nQuality,QA,Ravi Kumar,ravi@company.com,QA Engineer,anita@company.com,false\n'], {type: 'text/csv'}));
+    a.download = 'people_template.csv'; a.click(); URL.revokeObjectURL(a.href);
+  };
+  g('impFile').onchange = async e => {
+    const f = e.target.files[0]; g('impOut').innerHTML = ''; g('impApply').disabled = true; g('formErr').style.display = 'none';
+    if (!f) return;
+    try {
+      text = await f.text();
+      const r = await post('/org/import/preview', {csv: text});
+      const c = r.summary, rows = r.rows.slice().sort((a, b) => (b.action === 'error') - (a.action === 'error'));
+      g('impOut').innerHTML = `<div>${c.add} to add, ${c.update} to update, ${c.unchanged} unchanged,
+        <b style="color:${c.error ? 'var(--blocked)' : 'inherit'}">${c.error} with errors</b>.
+        ${c.error ? 'Fix the errors in your file and choose it again - nothing is saved until every row is valid.' : ''}</div>
+        <div class="scroll"><table><thead><tr><th>Line</th><th>Person</th><th>What happens</th><th>Notes</th></tr></thead><tbody>` +
+        rows.slice(0, 300).map(x => `<tr><td>${x.line}</td><td>${esc(x.name)}<div class="muted">${esc(x.email)}</div></td>
+          <td><span class="pill s-${esc(x.action)}">${esc(x.action)}</span></td>
+          <td>${esc(x.problems.concat(x.notes).join('; '))}</td></tr>`).join('') + '</tbody></table></div>' +
+        (rows.length > 300 ? `<div class="muted">Showing the first 300 of ${rows.length} rows (errors first).</div>` : '');
+      g('impApply').disabled = !!c.error || (c.add + c.update) === 0;
+    } catch (err) { g('formErr').textContent = err.message; g('formErr').style.display = 'block'; }
+  };
+  g('impApply').onclick = async () => {
+    g('impApply').disabled = true;
+    try {
+      const r = await post('/org/import/apply', {csv: text});
+      const c = r.summary;
+      g('impOut').innerHTML = `<div class="okbox">Imported: ${c.add} added, ${c.update} updated, ${c.unchanged} unchanged.</div>`;
+      g('mCancel').textContent = 'Done'; g('mCancel').onclick = async () => { closeModal(); await renderPeople(); };
+    } catch (err) { g('formErr').textContent = err.message; g('formErr').style.display = 'block'; g('impApply').disabled = false; }
+  };
+}
+
+// ======================= chat box =======================
+const chat = {history: [], busy: false, ready: false, files: [], uploading: 0};
+const MAX_FILES = 5, MAX_FILE_MB = 10;      // the server enforces its own limits too (MAX_ATTACHMENTS, MAX_ATTACHMENT_MB)
+const $ = id => document.getElementById(id);
+const CHIPS = ['Show company status', 'Show status of the QA team', 'Ask <name> to <task> by Friday'];
+
+function addBubble(cls, text) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls;
+  d.textContent = text;                       // textContent: never interpreted as HTML
+  $('chatLog').appendChild(d);
+  $('chatLog').scrollTop = $('chatLog').scrollHeight;
+  return d;
+}
+
+const fmtSize = n => n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
+
+function renderFiles(pending) {
+  const box = $('chatFiles');
+  box.innerHTML = '';
+  const add = (name, size, cls, onRemove) => {
+    const c = document.createElement('span');
+    c.className = 'fchip ' + cls;
+    c.innerHTML = '<span class="fn"></span><span class="fs"></span>';
+    c.querySelector('.fn').textContent = name;          // textContent: a file name is never interpreted as HTML
+    c.querySelector('.fs').textContent = size;
+    if (onRemove) {
+      const x = document.createElement('button');
+      x.type = 'button'; x.title = 'Remove'; x.textContent = '\u00D7';
+      x.onclick = onRemove;
+      c.appendChild(x);
+    }
+    box.appendChild(c);
+  };
+  chat.files.forEach((f, i) => add(f.name, fmtSize(f.size), '', () => { chat.files.splice(i, 1); renderFiles(); }));
+  (pending || []).forEach(p => add(p.name, 'uploading...', 'up'));
+  box.classList.toggle('has', chat.files.length > 0 || (pending || []).length > 0);
+}
+
+async function attachFiles(fileList) {
+  const picked = Array.from(fileList);
+  if (!picked.length) return;
+  if (!$('chatAs').value) { addBubble('err', 'Pick who you are (a leader) before attaching files.'); return; }
+  const room = MAX_FILES - chat.files.length;
+  if (picked.length > room) addBubble('err', `At most ${MAX_FILES} files can go with one message.`);
+  const todo = picked.slice(0, Math.max(room, 0));
+  chat.uploading += todo.length; $('chatSend').disabled = true;
+  const pending = todo.map(f => ({name: f.name}));
+  renderFiles(pending);
+  for (const f of todo) {
+    try {
+      if (f.size > MAX_FILE_MB * 1048576) throw new Error(`'${f.name}' is ${fmtSize(f.size)}; the limit is ${MAX_FILE_MB} MB per file.`);
+      const fd = new FormData();
+      fd.append('as_email', $('chatAs').value);
+      fd.append('file', f, f.name);
+      const a = await api('/agent/attachments', {method: 'POST', body: fd});
+      chat.files.push({id: a.id, name: a.filename, size: a.size});
+    } catch (e) { addBubble('err', e.message); }
+    pending.shift(); chat.uploading--;
+    renderFiles(pending);
+  }
+  $('chatSend').disabled = chat.busy || chat.uploading > 0;
+}
+
+function welcome() {
+  $('chatLog').innerHTML = '';
+  addBubble('assistant', 'Hi! I can assign work and report status.\n\nTry: "Ask Ravi Kumar to complete the NCR review by Friday" or "Show status of the QA team".\n\nOnly leaders can assign work - pick who you are above.');
+}
+
+async function loadPeople() {
+  try {
+    const people = (await api('/org/employees')).filter(e => e.active);
+    people.sort((a, b) => (b.is_leader - a.is_leader) || a.full_name.localeCompare(b.full_name));
+    const sel = $('chatAs');
+    const saved = sessionStorage.getItem('chatAs');
+    sel.innerHTML = '';
+    people.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.email;
+      o.textContent = e.full_name + (e.is_leader ? ' (leader)' : '');
+      sel.appendChild(o);
+    });
+    if (saved && people.some(e => e.email === saved)) sel.value = saved;
+  } catch (e) { addBubble('err', 'Could not load the people list: ' + e.message); }
+}
+
+// Shows one line per new task and keeps it up to date until the email is sent (or has failed for good).
+function trackDelivery(tasks) {
+  const box = addBubble('assistant dlv', '');
+  const lines = {};
+  tasks.forEach(t => {
+    const line = document.createElement('div');
+    line.textContent = `\u23F3 Sending email to ${t.assignee}... (task #${t.id})`;
+    box.appendChild(line);
+    lines[t.id] = {line, t};
+  });
+  const ids = tasks.map(t => t.id).join(',');
+  const started = Date.now();
+  const tick = async () => {
+    let pending = false;
+    try {
+      for (const d of await api('/tasks/delivery?ids=' + ids)) {
+        const r = lines[d.id];
+        if (!r) continue;
+        const who = `${r.t.assignee} (task #${d.id})`;
+        if (d.delivery_status === 'sent') r.line.textContent = `\u2705 Email sent to ${who}`;
+        else if (d.delivery_status === 'failed') r.line.textContent = `\u274C Email to ${who} could not be sent: ${d.delivery_error || 'unknown error'}`;
+        else {
+          pending = true;
+          r.line.textContent = d.delivery_attempts > 0
+            ? `\u26A0\uFE0F Email to ${who} failed, retrying... (attempt ${d.delivery_attempts})`
+            : `\u23F3 Sending email to ${who}...`;
+        }
+      }
+    } catch (e) { pending = true; }
+    $('chatLog').scrollTop = $('chatLog').scrollHeight;
+    if (pending && Date.now() - started < 180000) setTimeout(tick, 2000);
+    else {
+      if (pending) {
+        const note = document.createElement('div');
+        note.textContent = 'Still trying in the background - the task list shows the final result.';
+        box.appendChild(note);
+      }
+      render();                                // refresh the dashboard so its labels match
+    }
+  };
+  setTimeout(tick, 1500);
+}
+
+// ======================= Impact numbers =======================
+// Real counts from the task history; the "time saved" figure is an estimate and says exactly how it is made.
+const fmtImpact = {
+  hours: h => h == null ? '-' : h < 1 ? Math.round(h * 60) + ' min' : h < 48 ? (+h.toFixed(1)) + ' h' : (+(h / 24).toFixed(1)) + ' days',
+  secs: s => s == null ? '-' : s < 60 ? Math.round(s) + ' s' : (+(s / 60).toFixed(1)) + ' min',
+  mins: m => m < 60 ? m + ' min' : (+(m / 60).toFixed(1)) + ' h',
+};
+const impactCard = (n, label, sub) => `<div class="impact-card"><div class="impact-n">${n}</div><div class="impact-l">${esc(label)}</div>${sub ? `<div class="impact-s">${esc(sub)}</div>` : ''}</div>`;
+
+// Missing on an older server: then simply leave this group out instead of breaking the whole panel.
+function accuracyBlock(a) {
+  if (!a) return '';
+  return `<div class="impact-h">How accurately the agent reads replies</div><div class="impact-grid">
+      ${impactCard(a.right_pct == null ? '-' : a.right_pct + '%', 'of checked statuses were right', a.checked ? `${a.confirmed} confirmed, ${a.corrected} corrected` : 'nothing has been checked yet')}
+      ${impactCard(a.asked, 'times the agent was unsure and asked')}
+      ${impactCard(a.waiting_now, 'waiting for an answer now', a.expired ? `${a.expired} went unanswered` : '')}</div>
+    <div class="impact-s">Only statuses that someone confirmed or corrected are counted, so this is not a full accuracy score: a confident status that nobody questions is not checked.</div>
+`;
+}
+
+function renderImpact(r) {
+  const t = r.tasks, a = r.automation, sp = r.speed, ts = r.time_saved;
+  const none = 'not enough data yet';
+  g('iBody').innerHTML = `
+    <div class="impact-h">Work</div><div class="impact-grid">
+      ${impactCard(t.assigned, 'tasks assigned')}
+      ${impactCard(t.completed, 'tasks completed')}
+      ${impactCard(t.on_time_pct == null ? '-' : t.on_time_pct + '%', 'completed on time', t.on_time_pct == null ? none : `${t.completed_on_time} of ${t.completed_with_deadline} that had a deadline`)}
+      ${impactCard(t.open_now, 'open right now')}</div>
+    <div class="impact-h">Done by the agent, not by a person</div><div class="impact-grid">
+      ${impactCard(a.reminders_sent, 'reminders sent')}
+      ${impactCard(a.replies_read, 'replies read', 'and turned into a status')}
+      ${impactCard(a.blocker_alerts, 'blocker alerts to managers')}
+      ${impactCard(a.escalations, 'escalations')}
+      ${impactCard(a.assignment_emails_delivered, 'assignment emails delivered')}
+      ${impactCard(a.emails_sent_total, 'emails sent in total')}</div>
+    <div class="impact-h">How fast</div><div class="impact-grid">
+      ${impactCard(fmtImpact.hours(sp.first_reply_median_hours), 'typical time to first reply', sp.first_reply_samples ? `${sp.replied_pct}% of ${sp.tasks_assigned_in_period} tasks got a reply (based on ${sp.first_reply_samples})` : none)}
+      ${impactCard(fmtImpact.secs(sp.blocker_alert_median_seconds), 'to alert managers once a blocker reply is read', sp.blocker_alert_samples ? `plus up to ${sp.mailbox_check_seconds} s waiting for the next mailbox check (based on ${sp.blocker_alert_samples})` : none)}</div>
+    ${accuracyBlock(r.accuracy)}
+    <div class="impact-h">Estimated manager time saved</div>
+    <div class="impact-est"><span class="impact-n">${fmtImpact.mins(ts.minutes)}</span>
+      <div class="impact-s">ESTIMATE, not a measurement: ${ts.steps} steps &times; ${ts.minutes_per_step} min. A step is one reminder, reply read, blocker alert or escalation
+      (${esc(ts.basis)}). Change MANUAL_STEP_MINUTES in .env to match how long these really take.</div></div>`;
+}
+
+async function openImpact() {
+  openModal(`<h3>Impact</h3>
+    <div class="muted">What the agent did, counted from the task history. <span id="iSince"></span></div>
+    <div class="fld" style="margin-top:10px"><label for="iDays">Period</label>
+      <select id="iDays"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="3650">All time</option></select></div>
+    <div id="iErr" class="ferr" role="alert"></div><div id="iBody"></div>
+    <div class="actions"><span class="grow"></span><button type="button" id="mCancel">Close</button></div>`, true);
+  g('mCancel').onclick = closeModal;
+  const load = async () => {
+    g('iErr').style.display = 'none';
+    try {
+      const r = await api('/reports/impact?days=' + g('iDays').value);
+      g('iSince').textContent = 'Since ' + new Date(r.since + 'Z').toLocaleDateString();
+      renderImpact(r);
+    } catch (e) { g('iBody').innerHTML = ''; g('iErr').textContent = e.message; g('iErr').style.display = 'block'; }
+  };
+  g('iDays').onchange = load;
+  load();
+}
+
+// ======================= Morning brief =======================
+// Shows exactly what the CEO's email says right now, who gets it, and lets you send it immediately.
+async function openBrief() {
+  openModal(`<h3>Morning brief</h3><div class="muted" id="bInfo">Preparing the preview...</div>
+    <div id="bErr" class="ferr" role="alert" style="margin-top:10px"></div><div id="bFrame"></div>
+    <div id="bResult" style="margin-top:10px"></div>
+    <div class="actions"><span class="grow"></span><button type="button" id="mCancel">Close</button>
+      <button type="button" id="bSend" class="primary" disabled>Send now</button></div>`, true);
+  g('mCancel').onclick = closeModal;
+  try {
+    const p = await api('/agent/brief/preview');
+    g('bInfo').textContent = (p.recipients.length ? 'Goes to: ' + p.recipients.join(', ') : 'Nobody to send to yet') +
+      '  |  Subject: ' + p.subject + '  |  Also sent automatically every working morning.';
+    const f = document.createElement('iframe');
+    f.className = 'brief-frame'; f.setAttribute('sandbox', ''); f.title = 'Brief preview';   // sandbox="": no scripts, nothing can run
+    f.srcdoc = p.html;
+    g('bFrame').appendChild(f);
+    g('bSend').disabled = !p.recipients.length;
+    if (!p.recipients.length) { g('bErr').textContent = 'No active leader without a manager exists, and BRIEF_TO is empty.'; g('bErr').style.display = 'block'; }
+  } catch (e) { g('bInfo').textContent = ''; g('bErr').textContent = e.message; g('bErr').style.display = 'block'; return; }
+  g('bSend').onclick = async () => {
+    g('bSend').disabled = true; g('bSend').textContent = 'Sending...';
+    try {
+      const out = await api('/agent/brief/send', {method: 'POST'});
+      g('bResult').innerHTML = out.message ? `<div class="n-bad">${esc(out.message)}</div>` : out.results.map(r =>
+        r.ok ? `<div class="n-ok">&#9989; Sent to ${esc(r.to)}</div>` : `<div class="n-bad">&#10060; ${esc(r.to)}: ${esc(r.error)}</div>`).join('');
+    } catch (e) { g('bResult').innerHTML = `<div class="n-bad">${esc(e.message)}</div>`; }
+    g('bSend').textContent = 'Send again'; g('bSend').disabled = false;
+  };
+}
+
+// ======================= Meeting notes -> tasks =======================
+// 1) paste notes -> the agent PROPOSES tasks (nothing is created)  2) the leader reviews/edits  3) confirm -> tasks + emails
+async function openNotes() {
+  if (!$('chatAs').options.length) await loadPeople();   // the list is otherwise only loaded when the chat first opens
+  const who = $('chatAs').selectedOptions[0];
+  openModal(`<h3>Meeting notes &rarr; tasks</h3>
+    <div class="muted">Paste your notes. The agent proposes tasks for you to review. Nothing is created or emailed until you confirm.
+      Acting as <b>${esc(who ? who.textContent : 'nobody selected')}</b>.</div>
+    <div id="nErr" class="ferr" role="alert" style="margin-top:10px"></div>
+    <div class="fld" style="margin-top:10px">
+      <textarea id="nText" rows="9" maxlength="12000" placeholder="Paste the meeting notes or transcript here..."
+        style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit"></textarea>
+      <div class="hint" id="nCount"></div></div>
+    <div id="nRows"></div>
+    <div class="actions"><span class="grow"></span><button type="button" id="mCancel">Close</button>
+      <button type="button" id="nGo" class="primary" disabled>Find action items</button></div>`, true);
+  g('mCancel').onclick = closeModal;
+  const update = () => {
+    const n = g('nText').value.trim().length;
+    g('nCount').textContent = n + ' / 12000 characters' + (n < 20 ? ' (write at least 20)' : '');
+    g('nGo').disabled = n < 20;
+  };
+  g('nText').oninput = update; update();
+  g('nGo').onclick = async () => {
+    const err = g('nErr'); err.style.display = 'none';
+    g('nGo').disabled = true; g('nGo').textContent = 'Reading the notes...';
+    try {
+      const out = await api('/agent/notes/preview', {method: 'POST',
+        body: JSON.stringify({notes: g('nText').value, as_email: $('chatAs').value || null})});
+      renderNotesRows(out);
+    } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+    g('nGo').textContent = 'Find action items again'; update();
+  };
+}
+
+function renderNotesRows(out) {
+  const box = g('nRows');
+  if (!out.rows.length) { box.innerHTML = '<div class="empty">No action items found in these notes.</div>'; return; }
+  const who = r => !r.recipients.length ? '' : 'Will go to: ' + esc(r.recipients.slice(0, 4).map(p => p.name).join(', ')) +
+    (r.recipients.length > 4 ? ` and ${r.recipients.length - 4} more` : '');
+  box.innerHTML = `<table class="notes-t"><thead><tr><th></th><th>Task</th><th>Owner</th><th>Deadline</th></tr></thead><tbody>` +
+    out.rows.map(r => `<tr class="n-row" data-i="${r.index}">
+        <td><input type="checkbox" class="n-chk" aria-label="Create this task" ${r.problem || !r.verified ? '' : 'checked'}></td>
+        <td><input class="n-title" value="${esc(r.title)}" aria-label="Task title"></td>
+        <td><input class="n-owner" value="${esc(r.assignee)}" placeholder="who does this?" aria-label="Owner"></td>
+        <td><input class="n-due" type="date" value="${esc(r.due_date)}" aria-label="Deadline"></td></tr>
+      <tr class="n-sub" data-i="${r.index}"><td></td><td colspan="3">
+        ${r.problem ? `<div class="n-bad">${esc(r.problem)}</div>` : `<div>${who(r)}${r.note ? ' &middot; ' + esc(r.note) : ''}</div>`}
+        ${r.verified ? '' : '<div class="n-warn">Not found word-for-word in your notes - check this one before creating it.</div>'}
+        ${r.evidence ? `<div class="n-quote">From the notes: &ldquo;${esc(r.evidence)}&rdquo;</div>` : ''}
+      </td></tr>`).join('') + `</tbody></table>
+    ${out.truncated ? '<div class="muted">Only the first 25 action items are shown.</div>' : ''}
+    <div class="actions"><span class="muted" id="nSummary"></span><span class="grow"></span>
+      <button type="button" id="nConfirm" class="primary">Create tasks and send emails</button></div>`;
+  const rowsData = Object.fromEntries(out.rows.map(r => [r.index, r]));
+  const checked = () => [...box.querySelectorAll('.n-row')].filter(tr => tr.querySelector('.n-chk').checked && !tr.querySelector('.n-chk').disabled);
+  const summarize = () => {
+    const n = checked().length;
+    g('nSummary').textContent = n + (n === 1 ? ' task selected' : ' tasks selected');
+    g('nConfirm').disabled = n === 0;
+  };
+  box.querySelectorAll('.n-chk').forEach(c => c.onchange = summarize); summarize();
+
+  g('nConfirm').onclick = async () => {
+    const items = checked().map(tr => {
+      const i = Number(tr.dataset.i), r = rowsData[i];
+      return {index: i, title: tr.querySelector('.n-title').value.trim(), assignee: tr.querySelector('.n-owner').value.trim(),
+              description: r.description, due_date: tr.querySelector('.n-due').value || null, fan_out: r.fan_out};
+    });
+    const err = g('nErr'); err.style.display = 'none';
+    const bad = items.find(it => !it.title || !it.assignee);
+    if (bad) { err.textContent = 'Every selected task needs a title and an owner.'; err.style.display = 'block'; return; }
+    g('nConfirm').disabled = true; g('nConfirm').textContent = 'Creating...';
+    try {
+      const res = await api('/agent/notes/confirm', {method: 'POST', body: JSON.stringify({as_email: $('chatAs').value || null, items})});
+      const created = [];
+      for (const r of res.results) {
+        const main = box.querySelector(`.n-row[data-i="${r.index}"]`), sub = box.querySelector(`.n-sub[data-i="${r.index}"] td:nth-child(2)`);
+        if (r.created.length) {
+          created.push(...r.created);
+          main.querySelectorAll('input').forEach(el => { el.disabled = true; });
+          main.querySelector('.n-chk').checked = false;
+          sub.innerHTML = `<div class="n-ok">&#9989; Created ${esc(r.created.map(t => '#' + t.id + ' for ' + t.assignee).join(', '))}</div>`;
+        } else {
+          sub.innerHTML = `<div class="n-bad">${esc(r.problems.join(' ') || 'Nothing was created.')}</div>`;
+        }
+      }
+      if (created.length) {
+        await openChat();                        // first: opening the chat for the first time resets its log
+        trackDelivery(created);                  // the "sending -> sent" lines appear in the chat panel
+        err.textContent = created.length + ' task(s) created. Email progress is shown in the chat panel.';
+        err.style.display = 'block'; err.style.background = 'transparent'; err.style.color = 'var(--muted)';
+      }
+    } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+    g('nConfirm').textContent = 'Create tasks and send emails'; summarize();
+  };
+}
+
+async function sendChat(text) {
+  text = (text || '').trim();
+  if (!text || chat.busy) return;
+  if (chat.uploading) return;                 // wait until every file has been uploaded
+  chat.busy = true; $('chatSend').disabled = true;
+  const sending = chat.files.slice();
+  addBubble('user', text + (sending.length ? '\n\u{1F4CE} ' + sending.map(f => f.name).join(', ') : ''));
+  $('chatInput').value = '';
+  const typing = addBubble('assistant typing', 'Thinking...');
+  try {
+    const out = await api('/agent', {method: 'POST', body: JSON.stringify({
+      message: text, as_email: $('chatAs').value || null, history: chat.history.slice(-10),
+      attachment_ids: sending.map(f => f.id),
+    })});
+    typing.remove();
+    addBubble('assistant', out.reply || '(no reply)');
+    if (out.tasks && out.tasks.length) {
+      trackDelivery(out.tasks);               // live "sending -> sent" line
+      chat.files = []; renderFiles();         // the files went out with the tasks; if nothing was created they stay for a retry
+    }
+    chat.history.push({role: 'user', content: text}, {role: 'assistant', content: out.reply || ''});
+    render();                                 // refresh the dashboard behind the chat
+  } catch (e) {
+    typing.remove();
+    addBubble('err', e.message);
+  } finally {
+    chat.busy = false; $('chatSend').disabled = chat.uploading > 0; $('chatInput').focus();
+  }
+}
+
+async function openChat() {
+  $('chatPanel').classList.add('open');
+  if (!chat.ready) {
+    chat.ready = true;
+    welcome();
+    await loadPeople();
+  }
+  $('chatInput').focus();
+}
+
+$('notesBtn').onclick = openNotes;
+$('briefBtn').onclick = openBrief;
+$('impactBtn').onclick = openImpact;
+$('chatToggle').onclick = () => $('chatPanel').classList.contains('open') ? $('chatPanel').classList.remove('open') : openChat();
+$('chatSend').onclick = () => sendChat($('chatInput').value);
+$('chatAttach').onclick = () => $('chatFile').click();
+$('chatFile').onchange = () => { attachFiles($('chatFile').files); $('chatFile').value = ''; };
+$('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat($('chatInput').value); }
+});
+$('chatAs').onchange = () => {
+  sessionStorage.setItem('chatAs', $('chatAs').value);
+  chat.files = []; renderFiles();          // uploads belong to the person who made them
+  chat.history = []; welcome();   // a different person is speaking: start a fresh conversation
+};
+$('chatClear').onclick = () => { chat.history = []; chat.files = []; renderFiles(); welcome(); };
+CHIPS.forEach(c => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip'; b.textContent = c;
+  b.onclick = () => { $('chatInput').value = c.startsWith('Show') ? c : 'Ask '; $('chatInput').focus(); if (c.startsWith('Show')) sendChat(c); };
+  $('chatChips').appendChild(b);
+});
+</script>
+</body>
+</html>

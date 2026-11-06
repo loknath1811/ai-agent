@@ -1,13 +1,12 @@
-# Python
 __pycache__/
 *.py[cod]
 .venv/
 .mypy_cache/
 .pytest_cache/
-
-# Env vars
 .env
-
-# OS / editor
+*.db
 .DS_Store
 .vscode/
+logs/
+.env.*
+!.env.example

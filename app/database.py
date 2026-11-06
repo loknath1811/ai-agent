@@ -1,42 +1,51 @@
-import os
-from urllib.parse import urlparse
-
-from dotenv import load_dotenv
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
-    create_async_engine,
     async_sessionmaker,
+    create_async_engine,
 )
 
-load_dotenv()
+from . import changes, metrics
+from .config import get_settings
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+_settings = get_settings()
 
-if not DATABASE_URL:
+if not _settings.database_url:
     raise RuntimeError("DATABASE_URL missing from .env")
 
 
-# Convert PostgreSQL URL for asyncpg
-parsed = urlparse(DATABASE_URL)
+def build_async_url(raw: str):
+    """Turn a normal DATABASE_URL into one SQLAlchemy can use asynchronously.
 
-ASYNC_DATABASE_URL = (
-    f"postgresql+asyncpg://"
-    f"{parsed.username}:{parsed.password}"
-    f"@{parsed.hostname}"
-)
-
-if parsed.port:
-    ASYNC_DATABASE_URL += f":{parsed.port}"
-
-ASYNC_DATABASE_URL += f"{parsed.path}"
+    - postgres:// or postgresql:// -> postgresql+asyncpg://
+    - sslmode=... (libpq style)    -> ssl=... (asyncpg style)
+    - channel_binding=...          -> dropped (asyncpg does not accept it)
+    - sqlite:// stays sqlite (used by the automated tests)
+    """
+    url = make_url(raw)
+    if url.drivername.startswith("postgres"):
+        query = dict(url.query)
+        sslmode = query.pop("sslmode", None)
+        query.pop("channel_binding", None)
+        if sslmode and "ssl" not in query:
+            query["ssl"] = sslmode
+        url = url.set(drivername="postgresql+asyncpg", query=query)
+    elif url.drivername == "sqlite":
+        url = url.set(drivername="sqlite+aiosqlite")
+    return url
 
 
 async_engine: AsyncEngine = create_async_engine(
-    ASYNC_DATABASE_URL,
-    echo=False,
+    build_async_url(_settings.database_url), echo=False, pool_pre_ping=True
 )
 
-async_session = async_sessionmaker(
-    async_engine,
-    expire_on_commit=False,
-)
+metrics.install_db_hooks(async_engine)
+changes.install()
+
+async_session = async_sessionmaker(async_engine, expire_on_commit=False)
+
+
+async def get_session():
+    """FastAPI dependency: one session per request."""
+    async with async_session() as session:
+        yield session

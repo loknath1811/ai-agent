@@ -1,0 +1,6 @@
+division,team,full_name,email,title,manager_email,is_leader
+Quality,QA,Loknath,loknathreddy1118@gmail.com,QA Lead,,true
+Quality,CEO,Murra,loknathmurra@gmail.com,CEO,,false
+Quality,QA,Chitra Lekha,murrachitralekha27@gmail.com,QA Engineer,loknathreddy1118@gmail.com,false
+Engineering,Design,Reddy,202p1a0583@gmail.com,Design Lead,,true
+Engineering,Design,Vaayu,loknathreddy.murra@gmail.com,Design Engineer,202p1a0583@gmail.com,false
